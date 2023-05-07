@@ -106,7 +106,10 @@ max_retries: Maximum number of retries to make when generating.
 '''
 def getEmbedding(txt_data, aoai_embedding_model, chunk_size=1, max_retries = 3):
     try:
-        embeddings = OpenAIEmbeddings(model=aoai_embedding_model, chunk_size=chunk_size, max_retries=max_retries)        
+        print(f"txt_data={txt_data}")
+        print(f"!!!!!!!!!!!!!!!{aoai_embedding_model}!!!!!!!!!!!!!!!!")
+        embeddings = OpenAIEmbeddings(model=aoai_embedding_model, chunk_size=chunk_size, max_retries=max_retries)     
+        
         query_result = embeddings.embed_query(txt_data)
         return query_result
     except Exception as e:
@@ -196,7 +199,8 @@ def getEmbeddingEntireDoc(documentPath, aoai_embedding_model, chunk_size=1):
             source_doc_page_content_cleansed = cleanseText(source_doc_page_content)
 
             if (source_doc_page_content_cleansed) is not None and (len(source_doc_page_content_cleansed)>0) and (source_doc_page_content_cleansed.strip != ''):                    
-
+                print("Enter to if in 202")
+                print("f{source_doc_page_content_cleansed}")
                 embedding_result = getEmbedding(source_doc_page_content_cleansed, aoai_embedding_model, chunk_size=1, max_retries = 3)
                 # print(embedding_result)
 
@@ -214,8 +218,7 @@ def getEmbeddingEntireDoc(documentPath, aoai_embedding_model, chunk_size=1):
 
 
 
-def create_csv(page_content, page_content_vector, page_number, documentPath, prefix = 'doc'):
-    df = pd.DataFrame()
+def create_csv(df, page_content, page_content_vector, page_number, documentPath, prefix = 'doc'):
     
     # Super Important to include dtype parameter. Otherwise the record gets added but not seen by index!!!
     page_content_vector = np.array(page_content_vector, dtype=np.float32)        
@@ -223,32 +226,36 @@ def create_csv(page_content, page_content_vector, page_number, documentPath, pre
     
     new_row = {'page_content': str(page_content), 'page_number': str(page_number),
             'document_path': str(documentPath), 'page_content_vector': page_content_vector.tobytes()}
-    df = df.append(new_row, ignore_index=True)
+    
+    df.append(new_row, ignore_index=True)
 
     print(df)
     
-    return df.to_csv(CSV_FILE_PATH, index=False, header=None, encoding='utf-8-sig')
+    return df
 
 
 
 def add_document_to_csv(documentPath, document_page_content_list, document_page_embedding_list, document_page_no_list, prefix, encrypt_prefix=False):
     try:
+        df = pd.DataFrame()
+
         if encrypt_prefix:            
             prefix = encode(prefix)
             
         # Iterate through pages
         for i, embedding in enumerate(document_page_embedding_list):   
-            create_csv(page_content = document_page_content_list[i], 
+           create_csv(df, page_content = document_page_content_list[i], 
                        page_content_vector = document_page_embedding_list[i], 
                        page_number = document_page_no_list[i], 
                        prefix = prefix,
                        documentPath = documentPath
             )
 
-                        
+        df.to_csv(CSV_FILE_PATH, index=False, header=None, encoding='utf-8')                
+
         return True
     except Exception as e:
-        logging.error(f'Error addDocumentToRedis(): {e}')
+        logging.error(f'Error add_document_to_csv(): {e}')
         return False
 
 
@@ -311,57 +318,57 @@ class bcolors:
 
 aoai_embedding_models = {
 
-    "text-search-ada-doc-001":{
-        "version":{
-            "1":{
+    "text-search-ada-doc-001": {
+        "version": {
+            "1": {
                 "deployment_name": "text-search-ada-doc-001-v1",
-                "dim": 1024    
-                }
-            }    
-        },
-
-    "text-search-babbage-doc-001":{
-        "version":{
-            "1":{
-                "deployment_name": "text-search-babbage-doc-001-v1",
-                "dim": 2048    
-                }
-            }    
-        },
-
-    "text-search-curie-doc-001":{
-        "version":{
-            "1":{
-                "deployment_name": "text-search-curie-doc-001-v1",
-                "dim": 4096    
-                }
-            }    
-        },
-
-    "text-search-davinci-doc-001":{
-        "version":{
-            "1":{
-                "deployment_name": "text-search-davinci-doc-001-v1",
-                "dim": 12288    
-                }
-            }    
-        },
-
-    "text-embedding-ada-002":{
-        "version":{
-            "1":{
-                "deployment_name": "text-embedding-ada-002-v1",
-                "dim": 1536    
-                }
-            }    
-        },
-
-    "text-davinci-003":{
-        "version":{
-            "1":{
-                "deployment_name": "text-davinci-003-v1"                
-                }
-            }    
+                "dim": 1024
+            }
         }
+    },
 
+    "text-search-babbage-doc-001": {
+        "version": {
+            "1": {
+                "deployment_name": "text-search-babbage-doc-001-v1",
+                "dim": 2048
+            }
+        }
+    },
+
+    "text-search-curie-doc-001": {
+        "version": {
+            "1": {
+                "deployment_name": "text-search-curie-doc-001",
+                "dim": 4096
+            }
+        }
+    },
+
+    "text-search-davinci-doc-001": {
+        "version": {
+            "1": {
+                "deployment_name": "text-search-davinci-doc-001",
+                "dim": 12288
+            }
+        }
+    },
+
+    "text-embedding-ada-002": {
+        "version": {
+            "1": {
+                "deployment_name": "text-embedding-ada-002",
+                "dim": 1536
+            }
+        }
+    },
+
+    "text-davinci-003": {
+        "version": {
+            "1": {
+                "deployment_name": "text-davinci-003"
+            }
+        }
     }
+
+}
