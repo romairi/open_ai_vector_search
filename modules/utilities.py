@@ -16,10 +16,11 @@ from langchain.chains.qa_with_sources import load_qa_with_sources_chain
 # from .constants import CSV_FILE_PATH
 from dotenv import load_dotenv
 from sklearn.metrics.pairwise import cosine_similarity
+# from openai.embeddings_utils import cosine_similarity
 from pathlib import Path
 
 CSV_PATH = "data"
-FILE_NAME = "output.csv"
+FILE_NAME = "output"
 
 # Construct the path to the file
 CSV_FILE_PATH = Path(CSV_PATH) / FILE_NAME
@@ -122,7 +123,6 @@ max_retries: Maximum number of retries to make when generating.
 def getEmbedding(txt_data, aoai_embedding_model, chunk_size=1, max_retries=3):
     try:
         print(f"txt_data={txt_data}")
-        print(f"!!!!!!!!!!!!!!!{aoai_embedding_model}!!!!!!!!!!!!!!!!")
         embeddings = OpenAIEmbeddings(model=aoai_embedding_model, chunk_size=chunk_size, max_retries=max_retries)
 
         query_result = embeddings.embed_query(txt_data)
@@ -224,7 +224,6 @@ def getEmbeddingEntireDoc(documentPath, aoai_embedding_model, chunk_size=1):
                     source_doc_page_content_cleansed.strip != ''):
                 embedding_result = getEmbedding(source_doc_page_content_cleansed, aoai_embedding_model, chunk_size=1,
                                                 max_retries=3)
-                # print(embedding_result)
 
                 if embedding_result is not None:
                     document_page_content_list.append(source_doc_page_content)  # Retain formatting
@@ -241,22 +240,17 @@ def getEmbeddingEntireDoc(documentPath, aoai_embedding_model, chunk_size=1):
 
 def create_df(page_content, page_content_vector, page_number, documentPath, prefix='doc'):
     # Super Important to include dtype parameter. Otherwise the record gets added but not seen by index!!!
-    page_content_vector = np.array(page_content_vector, dtype=np.float32)
-    # print(f'page_content_vector.shape:{page_content_vector.shape}')
+    # page_content_vector = np.array(page_content_vector, dtype=np.float32)
 
-    print(f'page_content: {page_content}')
-    print(f'page_content_vector: {page_content_vector}')
-    print(f'page_number: {page_number}')
-    print(f'documentPath: {documentPath}')
+    # page_content_vector_list = [page_content_vector]
 
-    new_row = {'page_content': str(page_content), 'page_number': str(page_number),
-               'document_path': str(documentPath), 'page_content_vector': page_content_vector.tobytes()}
-    print("=============")
-    print(new_row)
+    new_row = {'page_number': page_number,
+               'documentPath': documentPath,
+               'page_content': page_content,
+               'page_content_vector': [page_content_vector]}
 
-    df = pd.DataFrame(new_row, index=[0])
-    print("????")
-    print(df)
+    df = pd.DataFrame(new_row)
+    # print(f"{df.head(10)}")
 
     return df
 
@@ -265,6 +259,7 @@ def add_document_to_csv(documentPath, document_page_content_list, document_page_
                         prefix, encrypt_prefix=False):
     try:
         df_list = []
+        np_array_list = []
 
         if encrypt_prefix:
             prefix = encode(prefix)
@@ -280,10 +275,9 @@ def add_document_to_csv(documentPath, document_page_content_list, document_page_
                            prefix=prefix,
                            documentPath=documentPath
                            )
-
             df_list.append(df)
 
-        pd.concat(df_list).to_csv(f'{CSV_PATH}/{FILE_NAME}', index=False, encoding="utf-8")
+        pd.concat(df_list).to_parquet(f'{CSV_PATH}/{FILE_NAME}', index=False)
         # df_list.to_csv(f'{CSV_PATH}/{FILE_NAME}', index=False, header=None, sep=":", encoding="utf-8")
 
         return True
@@ -295,24 +289,33 @@ def add_document_to_csv(documentPath, document_page_content_list, document_page_
 def query_csv(prompt, aoai_embedding_model, index_name, top_n, encrypt_index_name=False):
     try:
         document_lc_list = []
-        df = pd.read_csv(CSV_FILE_PATH)
+        df = pd.read_parquet(CSV_FILE_PATH)
 
         if encrypt_index_name:
             index_name = encode(index_name)
 
         vec_prompt = getEmbedding(txt_data=prompt, aoai_embedding_model=aoai_embedding_model, chunk_size=1,
                                   max_retries=3)
-        vec_prompt = np.array(vec_prompt,
-                              dtype=np.float32)  # Super important to specify dtype, otherwise vector share mismatch error.
 
+        print("-=-==Before np.Array-=---")
+        vec_prompt = np.array(vec_prompt,
+                              dtype=np.float32)
+
+        # Super important to specify dtype, otherwise vector share mismatch
+        # # error.
+        print("-=-==After np.Array-=---")
         # Convert the page_content_vector column to numpy arrays
-        df["page_content_vector"] = df["page_content_vector"].apply(lambda x: np.frombuffer(x))
+        # df["page_content_vector"] = df["page_content_vector"].apply(lambda x: np.frombuffer(x))
+        print(f"{df.head(10)}")
+        print("BEFORE cosine_similarity")
 
         # Compute cosine similarity between prompt vector and each row in DataFrame
-        cosine_similarities = cosine_similarity(np.stack(df["page_content_vector"].values), [vec_prompt])
+        # cosine_similarities = cosine_similarity(np.stack(df["page_content_vector"].values), [vec_prompt.tobytes()])
+        df["cosine_similarity"] = df.page_content_vector.apply(lambda x: cosine_similarity([np.array(x,
+                                                                                                     dtype=np.float32)],
+                                                                                           [vec_prompt]))
 
-        # Add cosine similarities as a new column in DataFrame
-        df["cosine_similarity"] = cosine_similarities
+        print("AFTER cosine_similarity")
 
         # Sort DataFrame by cosine similarity in descending order
         df_sorted = df.sort_values(by="cosine_similarity", ascending=False)
@@ -322,13 +325,19 @@ def query_csv(prompt, aoai_embedding_model, index_name, top_n, encrypt_index_nam
 
         # TODO: CHECK types
         # query_result = az_redis_connection.ft(index_name).search(query, {"prompt_vector": vec_prompt.tobytes()})          
-        query_result = df_sorted.to_dict()
+        query_result = df_sorted
+
+        # print("df_sorted: ")
+        # print(df_sorted.head(10))
+        #
+        print("QUERY_RESULT: ")
+        print(query_result)
 
         # Create lc document, for use with lc
-        for item in query_result.docs:
-            document_lc = Document(page_content=item.page_content,
-                                   metadata={"source": item.document_path, "page": item.page_number,
-                                             "similarity": 1 - float(item.__page_content_vector_score)})
+        for index, item in df.iterrows():
+            document_lc = Document(page_content=item["page_content"],
+                                   metadata={"source": item["documentPath"], "page": item["page_number"],
+                                             "similarity": 1 - float(item["cosine_similarity"])})
             document_lc_list.append(document_lc)
 
         return query_result, document_lc_list

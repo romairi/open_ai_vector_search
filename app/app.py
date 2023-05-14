@@ -1,7 +1,6 @@
 import sys
 
 sys.path.append('..')
-import os
 import streamlit as st
 from modules.utilities import *
 import pathlib
@@ -13,7 +12,6 @@ load_dotenv()
 setEnv()
 
 variable_value = os.environ.get("OPENAI_API_KEY")
-print(f"########### {variable_value}#################")
 
 # Exit if app set to MAINTENANCE_MODE (yes, no)
 if str(os.getenv('MAINTENANCE_MODE')).lower() == 'yes':
@@ -156,6 +154,8 @@ with st.container():
                                                           chunk_size=1)
             print('Embeddings retrieved')
             print(len(document_page_content_list), len(document_page_embedding_list), len(document_page_no_list))
+            print("result is: ")
+            print(document_page_embedding_list)
             # print(document_page_content_list)
             # print(document_page_embedding_list, document_page_no_list)
 
@@ -168,7 +168,6 @@ with st.container():
                                            document_page_no_list=document_page_no_list,
                                            prefix=textbox_msalias
                                            )
-            print(f'add_document_to_csv: {response}')
 
             progress_bar.progress(90, 'Running cleanup')
 
