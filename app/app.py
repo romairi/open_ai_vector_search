@@ -1,9 +1,11 @@
 import sys
+import pathlib
+import streamlit as st
 
 sys.path.append('..')
-import streamlit as st
+
 from modules.utilities import *
-import pathlib
+from PIL import Image
 
 # Will need commenting when deploying the app
 load_dotenv()
@@ -58,7 +60,7 @@ def highlightKeywords(keyword_list, input_text):
     highlighted = " ".join(
         f'<span style="background-color: #ffff99">{t}</span>' if t.lower() in keyword_list else t for t in
         input_text.split(' '))
-    # print(f'highlighted:{highlighted}')   
+
 
     return highlighted
 
@@ -114,7 +116,6 @@ def getResult(prompt, top_n, index_name):
     return out
 
 
-# --------------------------------------------------------------------------
 
 # Initialization of session vars
 if 'questions' not in st.session_state:
@@ -122,9 +123,15 @@ if 'questions' not in st.session_state:
 if 'answers' not in st.session_state:
     st.session_state['answers'] = []
 
-st.set_page_config(page_title='Azure OpenAI Search Demo', layout='wide', page_icon='../images/logo_black_simple.png')
+st.set_page_config(page_title='Bank hapoalim',layout='wide', page_icon='../images/logo.png')
 
 with st.container():
+    image= Image.open('../images/bank_hapoalim_logo.png')
+    st.image(image, width=600)
+
+    st.markdown('<div style="display:flex; align-items:center; justify-content: center; margin-bottom: 80px"></div>', unsafe_allow_html=True)
+
+
     def upload_button_click():
 
         if file_uploader is not None and len(textbox_msalias.strip()) >= ms_alias_min_length:
@@ -154,10 +161,6 @@ with st.container():
                                                           chunk_size=1)
             print('Embeddings retrieved')
             print(len(document_page_content_list), len(document_page_embedding_list), len(document_page_no_list))
-            print("result is: ")
-            print(document_page_embedding_list)
-            # print(document_page_content_list)
-            # print(document_page_embedding_list, document_page_no_list)
 
             progress_bar.progress(80, 'Almost done')
 
@@ -181,18 +184,17 @@ with st.container():
             left_column.warning('Please enter a valid alias')
 
 
+
     top_left_column, middle_left_column, right_left_column = st.columns([40, 20, 40])
     top_left_column_1, top_left_column_2 = top_left_column.columns([25, 75])
-    top_left_column_1.image(image='../images/logo_black.png', width=100)
-    # top_left_column_2.write('###')
-    top_left_column_2.subheader('Semantic Search Demo')
+    top_left_column_1.image(image='../images/search.png', width=70)
+    top_left_column_2.subheader('Search')
     top_left_column_2.write('Unleash the power of your documents with data-driven inquiries')
 
-    # st.write('---')   
+
 
     with st.sidebar:
-
-        st.markdown(':gear: Settings')
+        st.markdown('<div style="display:flex; align-items:center; justify-content: flex-start"><p style="color:red; font-size: 35px; margin:0">&#9881;</p> <span style="margin-left: 13px; font-size: 27px; font-family:Source Sans Pro, sans-serif"> Settings</span> </div>', unsafe_allow_html=True)
 
         textbox_msalias = st.text_input(label='Unique alias*', max_chars=10, key='textbox_msalias', type='password',
                                         help='''Unique text value to store/query your docs under. 
@@ -209,11 +211,6 @@ with st.container():
         checkbox_show_fileupload = st.checkbox(label='Upload file', key='checkbox_show_fileupload', value=False,
                                                help='Upload file using upload widget.')
 
-        st.write(
-            '### \n ### \n ### \n ### \n ### \n ### \n ### \n ### \n ### \n ### \n ### \n ### \n ### \n ### \n ### \n ###')
-        st.write("[Github Repo](https://github.com/MaheshSQL/openai-vector-search-demo)")
-        st.caption('Version: ' + app_version)
-        st.write('<p style="font-size:14px; color:black;"><b>Powered by Azure OpenAI</b></p>', unsafe_allow_html=True)
 
     if checkbox_show_fileupload == True:
         st.write('----')
@@ -237,8 +234,9 @@ with st.container():
                               , unsafe_allow_html=True)
         st.write('----')
 
+
+
 with st.container():
-    # left_column, middle_column, right_column = st.columns([46,8,46])
     left_column, middle_column, right_column = st.columns([60, 10, 30])
 
     prompt = left_column.text_area(label='Enter your question:', max_chars=prompt_text_area_max_chars, key='text_area1',
@@ -280,7 +278,6 @@ with st.container():
                         f'<p style="font-size:12px; color:black"><b>Score</b>: {ans_details["Score"]}</p>',
                         unsafe_allow_html=True)
 
-                # left_column.write(f'<p style="font-size:16px; color:black;background-color:#e8ebfa""><b>Content</b>: {ans_details[f"Content"]}</p>',unsafe_allow_html=True)
                 left_column.write(
                     f'<p style="font-size:16px; color:black;background-color:#e8ebfa""><b>Content</b>: {highlightKeywords(keyword_list, ans_details[f"Content"])}</p>',
                     unsafe_allow_html=True)
@@ -311,8 +308,6 @@ with st.container():
         if len(textbox_msalias.strip()) < ms_alias_min_length:
             left_column.warning('Please enter a valid alias')
 
-        # print(f'questions:{questions}')
-        # print(f'answers:{answers}')
 
         if len(list(reversed(questions))) > 0:
             right_column.write(f'<p style="font-size:16px; color:black"><b>Question History</b></p>',

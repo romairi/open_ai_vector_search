@@ -13,10 +13,8 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.llms.openai import AzureOpenAI
 from langchain.chains.qa_with_sources import load_qa_with_sources_chain
-# from .constants import CSV_FILE_PATH
 from dotenv import load_dotenv
 from sklearn.metrics.pairwise import cosine_similarity
-# from openai.embeddings_utils import cosine_similarity
 from pathlib import Path
 
 CSV_PATH = "data"
@@ -35,12 +33,6 @@ def readPDF(source_url):
     try:
         document_pages_lc = None
         document_pages_lc = PyPDFLoader(source_url).load()
-
-        # for page in document_pages_lc:
-
-        #     print(f'Source: {str(page.metadata["source"])}')
-        #     print(f'Page: {str(int(page.metadata["page"])+1)}')
-        #     print(page.page_content)
 
         return document_pages_lc
     except Exception as e:
@@ -190,11 +182,6 @@ def getEmbeddingEntireDoc(documentPath, aoai_embedding_model, chunk_size=1):
             document_pages_lc = readMSWord(documentPath)
 
         for document_page in document_pages_lc:
-            # print(document_page)
-            # print(document_page.page_content)
-            # print(document_page.metadata["source"])
-            # print(document_page.metadata["page"])
-
             source_doc_path = None
             source_doc_page_no = None
             source_doc_page_content = None
@@ -250,7 +237,6 @@ def create_df(page_content, page_content_vector, page_number, documentPath, pref
                'page_content_vector': [page_content_vector]}
 
     df = pd.DataFrame(new_row)
-    # print(f"{df.head(10)}")
 
     return df
 
@@ -259,13 +245,10 @@ def add_document_to_csv(documentPath, document_page_content_list, document_page_
                         prefix, encrypt_prefix=False):
     try:
         df_list = []
-        np_array_list = []
 
         if encrypt_prefix:
             prefix = encode(prefix)
 
-        # for x in range(len(document_page_content_list)):
-        #     print(document_page_content_list[x])
 
         # Iterate through pages
         for i, embedding in enumerate(document_page_embedding_list):
@@ -297,17 +280,13 @@ def query_csv(prompt, aoai_embedding_model, index_name, top_n, encrypt_index_nam
         vec_prompt = getEmbedding(txt_data=prompt, aoai_embedding_model=aoai_embedding_model, chunk_size=1,
                                   max_retries=3)
 
-        print("-=-==Before np.Array-=---")
         vec_prompt = np.array(vec_prompt,
                               dtype=np.float32)
 
         # Super important to specify dtype, otherwise vector share mismatch
         # # error.
-        print("-=-==After np.Array-=---")
         # Convert the page_content_vector column to numpy arrays
         # df["page_content_vector"] = df["page_content_vector"].apply(lambda x: np.frombuffer(x))
-        print(f"{df.head(10)}")
-        print("BEFORE cosine_similarity")
 
         # Compute cosine similarity between prompt vector and each row in DataFrame
         # cosine_similarities = cosine_similarity(np.stack(df["page_content_vector"].values), [vec_prompt.tobytes()])
@@ -315,23 +294,16 @@ def query_csv(prompt, aoai_embedding_model, index_name, top_n, encrypt_index_nam
                                                                                                      dtype=np.float32)],
                                                                                            [vec_prompt]))
 
-        print("AFTER cosine_similarity")
-
         # Sort DataFrame by cosine similarity in descending order
         df_sorted = df.sort_values(by="cosine_similarity", ascending=False)
 
         # Print the top 10 most similar rows
         print(df_sorted.head(10))
 
-        # TODO: CHECK types
-        # query_result = az_redis_connection.ft(index_name).search(query, {"prompt_vector": vec_prompt.tobytes()})          
         query_result = df_sorted
 
         # print("df_sorted: ")
         # print(df_sorted.head(10))
-        #
-        print("QUERY_RESULT: ")
-        print(query_result)
 
         # Create lc document, for use with lc
         for index, item in df.iterrows():
@@ -347,7 +319,7 @@ def query_csv(prompt, aoai_embedding_model, index_name, top_n, encrypt_index_nam
         return None, None
 
 
-# For cmd background colour
+# For cmd background color
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
