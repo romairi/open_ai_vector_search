@@ -20,13 +20,13 @@ if str(os.getenv('MAINTENANCE_MODE')).lower() == 'yes':
     st.write('App is currently offline for maintenance, please check back later.')
     exit()
 
-aoai_embedding_model = 'text-search-davinci-doc-001'  # 'text-search-ada-doc-001'
+aoai_embedding_model = 'text-embedding-ada-002'  # 'text-search-ada-doc-001'
 aoai_embedding_model_version = '1'
 
 aoai_text_model = 'text-davinci-003'
 aoai_text_model_version = '1'
-aoai_text_model_temperature = 0.2
-aoai_text_model_max_tokens = 500
+aoai_text_model_temperature = 0
+aoai_text_model_max_tokens = 250
 
 aoai_embedding_model_deployment = aoai_embedding_models[aoai_embedding_model]["version"][aoai_embedding_model_version][
     "deployment_name"]  # Azure OpenAI deployment name
@@ -95,7 +95,7 @@ def getResult(prompt, top_n, index_name):
 
         results.sort(reverse=True)  # Sort desc based on Score
         # print(results)
-        # print(results[0][1]) #top first answer index    
+        # print(results[0][1]) #top first answer index
 
         # Top N answers
         for i in range(top_n):
@@ -254,10 +254,10 @@ with st.container():
 
             top_n = int(selectbox_top_n)
 
-            try:
-                answer = getResult(prompt, top_n, textbox_msalias)
-            except:
-                print('Exception in getResult()')
+            # try:
+            answer = getResult(prompt, top_n, textbox_msalias)
+            # except:
+            #     print('Exception in getResult()')
 
             # No results retrieved
             if len(answer) == 0:
