@@ -114,7 +114,7 @@ max_retries: Maximum number of retries to make when generating.
 
 def getEmbedding(txt_data, aoai_embedding_model, chunk_size=1, max_retries=3):
     try:
-        print(f"txt_data={txt_data}")
+        # print(f"txt_data={txt_data}")
         embeddings = OpenAIEmbeddings(model=aoai_embedding_model, chunk_size=chunk_size, max_retries=max_retries)
 
         query_result = embeddings.embed_query(txt_data)
@@ -248,7 +248,6 @@ def add_document_to_csv(documentPath, document_page_content_list, document_page_
 
         if encrypt_prefix:
             prefix = encode(prefix)
-
 
         # Iterate through pages
         for i, embedding in enumerate(document_page_embedding_list):

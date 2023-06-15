@@ -72,7 +72,7 @@ def getResult(prompt, top_n, index_name):
 
     query_result, document_lc_list = query_csv(prompt=prompt, aoai_embedding_model=aoai_embedding_model_deployment,
                                                index_name=index_name, top_n=top_n)
-    # print(f'query_result:{query_result}') 
+    # print(f'query_result:{query_result}')
     # print(f'document_lc_list:{document_lc_list}')
 
     # Check if any response received
@@ -82,9 +82,11 @@ def getResult(prompt, top_n, index_name):
         llm = AzureOpenAI(deployment_name=aoai_text_model_deployment, temperature=aoai_text_model_temperature,
                           max_tokens=aoai_text_model_max_tokens)
 
+        print(f'prompt:{prompt}')
         # lc
         # chain = load_qa_with_sources_chain(llm, chain_type="stuff")
         chain = load_qa_with_sources_chain(llm, chain_type="map_rerank", verbose=False, return_intermediate_steps=True)
+        print(f'chain:{chain}')
         chain_out = chain({"input_documents": document_lc_list, "question": prompt}, return_only_outputs=False)
         # print(f'chain_out:{chain_out}')
 
@@ -96,6 +98,9 @@ def getResult(prompt, top_n, index_name):
         results.sort(reverse=True)  # Sort desc based on Score
         # print(results)
         # print(results[0][1]) #top first answer index
+
+        if top_n > len(results):
+            top_n = len(results)
 
         # Top N answers
         for i in range(top_n):
@@ -116,20 +121,20 @@ def getResult(prompt, top_n, index_name):
     return out
 
 
-
 # Initialization of session vars
 if 'questions' not in st.session_state:
     st.session_state['questions'] = []
 if 'answers' not in st.session_state:
     st.session_state['answers'] = []
 
-st.set_page_config(page_title='Bank hapoalim',layout='wide', page_icon='../images/logo.png')
+st.set_page_config(page_title='Bank hapoalim', layout='wide', page_icon='../images/logo.png')
 
 with st.container():
-    image= Image.open('../images/bank_hapoalim_logo.png')
+    image = Image.open('../images/bank_hapoalim_logo.png')
     st.image(image, width=600)
 
-    st.markdown('<div style="display:flex; align-items:center; justify-content: center; margin-bottom: 80px"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="display:flex; align-items:center; justify-content: center; margin-bottom: 80px"></div>',
+                unsafe_allow_html=True)
 
 
     def upload_button_click():
@@ -184,17 +189,16 @@ with st.container():
             left_column.warning('Please enter a valid alias')
 
 
-
     top_left_column, middle_left_column, right_left_column = st.columns([40, 20, 40])
     top_left_column_1, top_left_column_2 = top_left_column.columns([25, 75])
     top_left_column_1.image(image='../images/search.png', width=70)
     top_left_column_2.subheader('Search')
     top_left_column_2.write('Unleash the power of your documents with data-driven inquiries')
 
-
-
     with st.sidebar:
-        st.markdown('<div style="display:flex; align-items:center; justify-content: flex-start"><p style="color:red; font-size: 35px; margin:0">&#9881;</p> <span style="margin-left: 13px; font-size: 27px; font-family:Source Sans Pro, sans-serif"> Settings</span> </div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div style="display:flex; align-items:center; justify-content: flex-start"><p style="color:red; font-size: 35px; margin:0">&#9881;</p> <span style="margin-left: 13px; font-size: 27px; font-family:Source Sans Pro, sans-serif"> Settings</span> </div>',
+            unsafe_allow_html=True)
 
         textbox_msalias = st.text_input(label='Unique alias*', max_chars=10, key='textbox_msalias', type='password',
                                         help='''Unique text value to store/query your docs under. 
@@ -211,7 +215,6 @@ with st.container():
         checkbox_show_fileupload = st.checkbox(label='Upload file', key='checkbox_show_fileupload', value=False,
                                                help='Upload file using upload widget.')
 
-
     if checkbox_show_fileupload == True:
         st.write('----')
 
@@ -221,7 +224,7 @@ with st.container():
                                                      label_visibility='hidden')
         middle_column_12.write('###')
         middle_column_12.write('###')
-        # middle_column_b.write('###')    
+        # middle_column_b.write('###')
         upload_button = middle_column_12.button(label='Upload', on_click=upload_button_click)
 
         # fffce7
@@ -233,8 +236,6 @@ with st.container():
                         \n <p style="font-size:16px; color:black;background-color:#f7b0b0"><i>For use with sensitive documents, please clone the repository and run it in your own environment.</i></p>'''
                               , unsafe_allow_html=True)
         st.write('----')
-
-
 
 with st.container():
     left_column, middle_column, right_column = st.columns([60, 10, 30])
@@ -257,7 +258,7 @@ with st.container():
             # try:
             answer = getResult(prompt, top_n, textbox_msalias)
             # except:
-            #     print('Exception in getResult()')
+                # print('Exception in getResult()')
 
             # No results retrieved
             if len(answer) == 0:
@@ -307,7 +308,6 @@ with st.container():
 
         if len(textbox_msalias.strip()) < ms_alias_min_length:
             left_column.warning('Please enter a valid alias')
-
 
         if len(list(reversed(questions))) > 0:
             right_column.write(f'<p style="font-size:16px; color:black"><b>Question History</b></p>',
